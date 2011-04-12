@@ -1,0 +1,179 @@
+.TH ksc "1" "November 2018" "ksc - Version 1.7" "User Commands"
+.SH NAME
+ksc \- report symbols used by kernel modules
+.SH SYNOPSIS
+.B ksc -k \fIFILE\fR ... [OPTIONS]
+
+.B ksc -k \fIFILE\fR ... -s [OPTIONS]
+
+.B ksc -s -p \fIKSC_RESULT\fR [OPTIONS]
+
+.SH DESCRIPTION
+.B ksc
+produces and submits reports of symbols used by kernel object \fIFILE\fRs
+(specified by -k). Resulting report is always saved to \fI~/ksc-result.txt\fR.
+
+For more on report generation, see -k.
+
+For more on report submission, see -s.
+
+.SH ENVIRONMENT
+
+It is highly recommended that ksc is used on the latest minor version of RHEL,
+and to make sure, prior to ksc usage, to update kabi-stablelists as well as
+kernel-devel-provided Module.symvers. This can be accomplished, for example,
+by issuing:
+
+yum \fBupdate\fR \fBkernel-abi-stablelists kernel-devel\fR
+
+It is also possible to use the -y (--symvers) option to explicitly state the
+location of Module.symvers file to make sure that accurate and up-to-date
+kABI data be provided to ksc.
+
+.SH OPTIONS
+You may freely mix different option styles.
+
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Show help message and exit.
+.TP
+\fB\-c\fR \fICONFIG\fR, \fB\-\-\fRconfig=\fICONFIG\fR
+Read config options from \fICONFIG\fR file. If not supplied, \fBksc\fR will use
+~/ksc.conf. If not found, /etc/ksc.conf will be used instead.
+.TP
+\fB\-j\fR \fIKSC_RESULT\fR, \fB\-\-\fRjustification-from=\fIKSC_RESULT\fR
+Read symbol justifications from \fIKSC_RESULT\fR file and use them in the new
+report. It is important to note that placeholder justifications and reference
+justifications are ignored by this option and re-generated every time.
+
+This option may be specified multiple times. \fIKSC_RESULT\fR file order is
+determined by the order of arguments passed to ksc. If there are two conflicting
+non-placeholder/non-reference justifications for a kernel module A.ko symbol S
+in multiple report files at the same time, it will be carried over from the
+last one specified on the command line.
+
+Symbol justifications can be carried over within the same kernel module only.
+Justifications do not propagate through references (i.e., if you justify
+usage of S for A.ko, B.ko references justification in A.ko, and you run ksc
+without A.ko, justification is not carried over and you will be asked to
+specify).
+.TP
+\fB\-k\fR \fIFILE\fR, \fB\-\-ko\fR=\fIFILE\fR
+Collect used symbols in kernel object \fIFILE\fR.
+.br
+Multiple -k arguments may be supplied, in which case different \fIFILE\fRs are
+placed in distinct sections of the \fI~/ksc-result.txt\fR file.
+
+All kernel object \fIFILE\fRs must be build against the same architecture.
+
+If multiple \fIFILE\fRs are supplied, ksc report won't include symbols exported
+by any one of the \fIFILE\fRs. This allows for bulk collection of symbols of
+a functionally dependent set of kernel modules without having to filter
+symbols coming from other modules.
+.TP
+\fB\-K\fR \fIFILE\fR, \fB\-\-ko-dependency\fR=\fIFILE\fR
+Omit any symbols exported by \fIFILE\fR from the report. Use this option if
+other modules (which are part of the report) depend on symbols exported by
+\fIFILE\fR, but \fIFILE\fR itself is not to be reported at this time.
+.TP
+\fB\-n\fR \fIRELEASE\fR, \fB\-\-name\fR=\fIRELEASE\fR
+RHEL \fIRELEASE\fR against which the bug is to be filed, e.g '6.5'.
+.TP
+\fB\-p\fR \fIPREVIOUS\fR, \fB\-\-previous\fR=\fIPREVIOUS\fR
+Specified \fIPREVIOUS\fR file is marked for submission to Red Hat Bugzilla.
+.br
+To submit, you need to use -s.
+.TP
+\fB\-r\fR \fIRELEASE\fR, \fB\-\-release\fR=\fIRELEASE\fR
+RHEL \fIRELEASE\fR used for symbol comparison with stablelists, e.g. '6.5'.
+.TP
+\fB\-y\fR \fISYMVERS\fR, \fB\-\-symvers\fR=\fISYMVERS\fR
+Path to Module.symvers \fISYMVERS\fR file used to check symbol presence in the
+the kernel. If not specified, current kernel version is used to determine the
+path and Module.symvers of the currently running kernel is used.
+
+You are notified whenever symbol is not present in the Module.symvers file.
+.TP
+\fB\-s\fR, \fB\-\-submit\fR
+Submit the report to the Red Hat Bugzilla (https://bugzilla.redhat.com).
+Credentials used in submission need to be set a config file (see FILES section
+below). If API key is not set, ksc will prompt for Bugzilla password.
+
+This option needs to be supplemented with -k or -p.
+
+If used with -k, report gets generated, opened in an editor for you to make
+changes, saved in \fI~/ksc-result.txt\fR, and submitted. You may interrupt
+submission by pressing ^C.
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+Prints ksc version.
+
+.SH FILES
+
+.TP
+~/ksc-result.txt
+Report produced by ksc.
+
+.TP
+~/ksc.conf (/etc/ksc.conf)
+Local (global) ksc config file. Global config file is used only when local
+config file does not exist. Syntax is as follows:
+.IP
+.br
+[bugzilla]
+.br
+user=user@redhat.com
+.br
+partner=partner\-name
+.br
+partnergroup=partner\-group
+.br
+server=https://bugzilla.redhat.com/xmlrpc.cgi
+.br
+api_key=api_key
+
+These are default values. Whenever a field has such a value (except the
+server field), it will always be treated as though it were undefined/left blank.
+
+.SH EXAMPLES
+.TP
+ksc -k a.ko
+Process a.ko file using system-provided stablelist and Module.symvers files.
+Reports symbols used by a.ko that are not in stablelist, requesting justification
+for their use.
+
+.TP
+ksc -k a.ko -y /tmp/Module.symvers
+Process a.ko file using system-provided stablelist and user-provided
+Module.symvers (/tmp/Module.symvers) files. Reports symbols used by a.ko that
+are not in stablelist, requesting justification for their use.
+
+.TP
+ksc -k a.ko -k b.ko
+Process a.ko and b.ko files using system-provided stablelist and Module.symvers
+files. Reports symbols used by both a.ko and b.ko that are not in stablelist,
+requesting justification for their use. Only one justification per symbol is
+required. Any mention of an already justified symbol come with an automatically
+generated references.
+
+.TP
+ksc -k a.ko -k b.ko -K c.ko -K d.ko
+Process a.ko and b.ko files using system-provided stablelist and Module.symvers
+files. Reports symbols used by both a.ko and b.ko that are not in stablelist and
+not exported by either c.ko or d.ko, requesting justification for their use.
+Only one justification per symbol is required. Any mention of an already
+justified symbol come with an automatically generated references.
+
+.TP
+ksc -k a.ko -k b.ko -j previous-report.txt
+Process a.ko and b.ko files using system-provided stablelist and Module.symvers
+files. Reports symbols used by both a.ko and b.ko that are not in stablelist,
+requesting justification for their use. Only one justification per symbol is
+required. Any mention of an already justified symbol come with an automatically
+generated references. Justifications already present in previous-report.txt
+are carried over to the newly generated one.
+
+.TP
+ksc -s -p report-to-submit.txt
+Submit a report to bugzilla.
+

@@ -1,0 +1,8 @@
+include ksc.toml
+include bugzilla/*
+include data/*.c
+include data/ksc.conf
+include ksc.1
+include COPYING
+include README
+include *.py

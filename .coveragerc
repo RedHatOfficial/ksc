@@ -1,0 +1,11 @@
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == '__main__'
+
+[run]
+include =
+    ksc.py
+    keywords.py
+    utils.py
+    setup.py

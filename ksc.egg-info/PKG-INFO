@@ -1,0 +1,16 @@
+Metadata-Version: 1.2
+Name: ksc
+Version: 1.7
+Summary: ksc tool
+Home-page: https://github.com/RedHatOfficial/ksc/
+Author: Kushal Das, Samikshan Bairagya, Stanislav Kozina, Martin Lacko, Ziqian Sun
+Author-email: kdas@redhat.com, sbairagy@redhat.com, skozina@redhat.com, mlacko@redhat.com, zsun@redhat.com
+License: http://www.gnu.org/copyleft/gpl.html
+Description: Kernel Module Source Checker tool
+Platform: Linux
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: License :: OSI Approved :: GNU General Public License v2 (GPLv2)
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.6, <4

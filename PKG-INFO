@@ -1,0 +1,10 @@
+Metadata-Version: 1.7
+Name: ksc
+Version: 1.7
+Summary: ksc tool
+Home-page: http://redhat.com
+Author: Kushal Das, Samikshan Bairagya, Stanislav Kozina, Martin Lacko, Ziqian Sun
+Author-email: kdas@redhat.com, sbairagy@redhat.com, skozina@redhat.com, mlacko@redhat.com, zsun@redhat.com
+License: http://www.gnu.org/copyleft/gpl.html
+Description: Kernel Module Source Checker tool
+Platform: Linux

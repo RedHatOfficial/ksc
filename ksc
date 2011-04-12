@@ -1,0 +1,4 @@
+#!/bin/sh
+export PYTHONPATH=/usr/share/ksc
+exec /usr/bin/python3 -tt /usr/share/ksc/ksc.py "$@"
+
