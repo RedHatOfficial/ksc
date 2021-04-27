@@ -147,9 +147,12 @@ def run(command):
     """
     runs the given command
     """
+    env = os.environ.copy()
+    if "LANG" in env:
+        env["LANG"] = 'C'
     ret = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE,
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                           close_fds=True)
+                           close_fds=True, env=env)
     out, err = ret.communicate()
     if err:
         errs = err.decode(locale.getpreferredencoding()).split(':', 1)
