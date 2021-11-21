@@ -67,6 +67,7 @@ class Ksc(object):
         self.symvers = None
         self.arch = None
         self.vermagic = {}
+        self.import_ns = {}
         if mock:
             self.releasename = '7.0'
         else:
@@ -82,6 +83,7 @@ class Ksc(object):
         self.matchdata = None
         self.total = None
         self.vermagic = {}
+        self.import_ns = {}
 
     def main(self, mock_options=None):
         """
@@ -411,9 +413,15 @@ class Ksc(object):
 
                 f.write(command)
                 for ko_file in self.all_symbols_used:
-                    f.write("\n{%s@%s}\n\n" % (
+                    ns = list(filter(lambda x: x, self.import_ns[ko_file]))
+                    if ns:
+                        ns = "@ns:" + "@ns:".join(ns)
+                    else:
+                        ns = ""
+                    f.write("\n{%s@%s%s}\n\n" % (
                         os.path.basename(ko_file),
-                        self.vermagic[ko_file].strip()
+                        self.vermagic[ko_file].strip(),
+                        ns
                     ))
                     self.write_result(f, ko_file)
 
@@ -559,6 +567,12 @@ class Ksc(object):
 
         try:
             self.vermagic[path] = run("modinfo -F vermagic '%s'" % path)
+        except Exception as e:
+            print(e)
+            sys.exit(1)
+
+        try:
+            self.import_ns[path] = run("modinfo -F import_ns '%s'" % path).split('\n')
         except Exception as e:
             print(e)
             sys.exit(1)
