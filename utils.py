@@ -225,6 +225,8 @@ def createbug(filename, arch, mock=False, path='/etc/ksc.conf',
         bughash = {'product': 'Red Hat Enterprise Linux 7'}
     elif releasename.startswith('8.'):
         bughash = {'product': 'Red Hat Enterprise Linux 8'}
+    elif releasename.startswith('9.'):
+        bughash = {'product': 'Red Hat Enterprise Linux 9'}
     else:
         print("Invalid releasename: Bug not created")
         return
