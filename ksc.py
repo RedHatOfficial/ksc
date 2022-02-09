@@ -332,6 +332,8 @@ class Ksc(object):
             else:
                 print("Using RHEL %s release." % release_name)
 
+            self.releasename = release_name
+
     def submit(self, filename, path):
         """
         Submits the resultset into Red Hat bugzilla.
