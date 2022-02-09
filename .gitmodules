@@ -1,0 +1,3 @@
+[submodule "python-bugzilla"]
+	path = python-bugzilla
+	url = https://github.com/python-bugzilla/python-bugzilla
