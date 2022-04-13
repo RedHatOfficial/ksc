@@ -10,7 +10,7 @@ for x in os.listdir('bugzilla/'):
     bugzilla.append('bugzilla/%s' % x)
 
 setup(name='ksc',
-      version='1.9',
+      version='1.10',
       description="ksc tool",
       long_description="Kernel Module Source Checker tool",
       url='https://github.com/RedHatOfficial/ksc/',

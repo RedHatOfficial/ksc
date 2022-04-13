@@ -18,7 +18,7 @@ from utils import read_total_list, get_release_name
 from utils import createbug
 from utils import query_user, query_user_bool
 
-KSCVERSION = "ksc - Version 1.9"
+KSCVERSION = "ksc - Version 1.10"
 
 
 class Ksc(object):
