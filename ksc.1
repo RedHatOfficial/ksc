@@ -20,11 +20,10 @@ For more on report submission, see -s.
 .SH ENVIRONMENT
 
 It is highly recommended that ksc is used on the latest minor version of RHEL,
-and to make sure, prior to ksc usage, to update kabi-stablelists as well as
-kernel-devel-provided Module.symvers. This can be accomplished, for example,
-by issuing:
+and to make sure, prior to ksc usage, to update kernel-devel-provided
+Module.symvers. This can be accomplished, for example, by issuing:
 
-yum \fBupdate\fR \fBkernel-abi-stablelists kernel-devel\fR
+yum \fBupdate\fR \fBkernel-devel\fR
 
 It is also possible to use the -y (--symvers) option to explicitly state the
 location of Module.symvers file to make sure that accurate and up-to-date

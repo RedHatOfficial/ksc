@@ -183,13 +183,7 @@ class Ksc(object):
         if options.ko:
             self.find_arch(options.ko)
 
-            exists = self.read_data(self.arch, self.releasedir, self.symvers)
-            # Return if there is any issue in reading stablelists
-            if not exists:
-                print(("Release %s for arch %s was not found.\n"
-                      "Do you have right kernel-abi-stablelist installed ?" %
-                       (self.releasedir, self.arch)))
-                sys.exit(1)
+            self.read_data(self.arch, self.releasedir, self.symvers)
 
             for kmod_path in options.ko:
                 self.parse_ko(kmod_path, process_stablelists=True)
