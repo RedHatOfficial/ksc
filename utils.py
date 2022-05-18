@@ -212,9 +212,17 @@ def getconfig(path='/etc/ksc.conf', mock=False):
         sys.exit(1)
     return result
 
+def createbug_stable(filename, arch, mock=False, path='/etc/ksc.conf',
+              releasename='9.0', module=None):
+    return createbug(filename, arch, mock, path, releasename, module,
+            "kabi-stablelists")
 
-def createbug(filename, arch, mock=False, path='/etc/ksc.conf',
-              releasename='7.0', module=None):
+def createbug_notif(filename, arch, mock=False, path='/etc/ksc.conf',
+              releasename='9.0', module=None):
+    return createbug(filename, arch, mock, path, releasename, module,
+            "kabi-notificationlists")
+
+def createbug(filename, arch, mock, path, releasename, module, subcomponent):
     """
     Opens a bug in the Bugzilla
     """
@@ -299,7 +307,7 @@ def createbug(filename, arch, mock=False, path='/etc/ksc.conf',
     if not mock:  # pragma: no cover
         print("Creating a new bug")
 
-    bughash["sub_component"] = 'kabi-stablelists'
+    bughash["sub_component"] = subcomponent
 
     # As it is as yet unclear whether the new sub_component will be
     # set up at the time of deployment, attemp to file with the old
