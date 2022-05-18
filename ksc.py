@@ -15,10 +15,10 @@ import sys
 from optparse import OptionParser, SUPPRESS_HELP
 from utils import run, read_list
 from utils import read_total_list, get_release_name
-from utils import createbug
+from utils import createbug_stable, createbug_notif
 from utils import query_user, query_user_bool
 
-KSCVERSION = "ksc - Version 1.10"
+KSCVERSION = "ksc - Version 1.11"
 
 
 class Ksc(object):
@@ -117,6 +117,9 @@ class Ksc(object):
         parser.add_option("-s", "--submit",
                           action="store_true", dest="submit", default=False,
                           help="Submit to Red Hat Bugzilla")
+        parser.add_option("-S", "--subscribe",
+                          action="store_true", dest="subscribe", default=False,
+                          help="Submit to Red Hat Bugzilla")
         parser.add_option("-v", "--version",
                           action="store_true", dest="VERSION", default=False,
                           help="Prints KSC version number")
@@ -159,7 +162,7 @@ class Ksc(object):
                 print("Please point to the ksc-result.txt file in -p option.")
                 sys.exit(1)
 
-            self.submit(filename, path)
+            self.submit(filename, path, options.submit, options.subscribe)
             return
 
         self.releasedir = 'kabi-current'
@@ -201,12 +204,12 @@ class Ksc(object):
 
         # Now save the result
 
-        if not options.submit:
+        if not options.submit and not options.subscribe:
             return
 
         if not self.mock:  # pragma: no cover
             self.get_justification(filename)
-        self.submit(filename, path)
+        self.submit(filename, path, options.submit, options.subscribe)
 
     def read_justifications(self, filepath):
         filepath = os.path.abspath(os.path.expanduser(filepath))
@@ -328,7 +331,7 @@ class Ksc(object):
 
             self.releasename = release_name
 
-    def submit(self, filename, path):
+    def submit(self, filename, path, submit, subscribe):
         """
         Submits the resultset into Red Hat bugzilla.
         Asks user for Red Hat internal processing consent.
@@ -350,8 +353,18 @@ class Ksc(object):
             self.submit_get_consent()
             self.submit_get_release()
 
-        createbug(filename, self.arch, mock=self.mock, path=path,
-                  releasename=self.releasename, module=module_name)
+        if not submit and not subscribe:
+            print("Please use -s or -S to submit.")
+            sys.exit(1)
+
+        if submit:
+            return createbug_stable(filename, self.arch, mock=self.mock,
+                    path=path, releasename=self.releasename,
+                    module=module_name)
+
+        createbug_notif(filename, self.arch, mock=self.mock, path=path,
+                releasename=self.releasename, module=module_name)
+
 
     def get_justification(self, filename):
         """

@@ -212,9 +212,17 @@ def getconfig(path='/etc/ksc.conf', mock=False):
         sys.exit(1)
     return result
 
+def createbug_stable(filename, arch, mock=False, path='/etc/ksc.conf',
+              releasename='9.0', module=None):
+    return createbug(filename, arch, mock, path, releasename, module,
+            "kabi-stablelists")
 
-def createbug(filename, arch, mock=False, path='/etc/ksc.conf',
-              releasename='7.0', module=None):
+def createbug_notif(filename, arch, mock=False, path='/etc/ksc.conf',
+              releasename='9.0', module=None):
+    return createbug(filename, arch, mock, path, releasename, module,
+            "kabi-notificationlists")
+
+def createbug(filename, arch, mock, path, releasename, module, subcomponent):
     """
     Opens a bug in the Bugzilla
     """
@@ -276,7 +284,18 @@ def createbug(filename, arch, mock=False, path='/etc/ksc.conf',
     else:
         bughash["Bugzilla_login"] = conf["user"]
         bughash["Bugzilla_password"] = conf["password"]
-    bughash["cf_partner"] = [conf["partner"], ]
+
+    if conf["partner"]:
+        bughash["cf_partner"] = [conf["partner"], ]
+    else:
+        if subcomponent == "kabi-stablelists":
+            print("You must provide a valid non-empty Partner field when using -s.")
+            sys.exit(1)
+        if query_user_bool("You have provided blank partner field. " \
+                "This will file your request publicly. Proceed? [y/N]: ") != 'y':
+            print("ksc-report.txt not uploaded. Terminating...")
+            sys.exit(1)
+
     bughash["keywords"] = ["Tracking"]
 
     try:
@@ -299,7 +318,7 @@ def createbug(filename, arch, mock=False, path='/etc/ksc.conf',
     if not mock:  # pragma: no cover
         print("Creating a new bug")
 
-    bughash["sub_component"] = 'kabi-stablelists'
+    bughash["sub_component"] = subcomponent
 
     # As it is as yet unclear whether the new sub_component will be
     # set up at the time of deployment, attemp to file with the old
@@ -335,7 +354,10 @@ def trycreatebug(filename, mock, bughash, conf, bz):
         groups=bughash['groups'],
         keywords=bughash['keywords']
     )
-    ret['cf_partner'] = bughash['cf_partner']
+
+    if "cf_partner" in bughash and bughash['cf_partner']:
+        ret['cf_partner'] = bughash['cf_partner']
+
     bug = bz.createbug(ret)
 
     bugid = bug.id

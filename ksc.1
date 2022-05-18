@@ -1,4 +1,4 @@
-.TH ksc "1" "November 2018" "ksc - Version 1.10" "User Commands"
+.TH ksc "1" "May 2022" "ksc - Version 1.11" "User Commands"
 .SH NAME
 ksc \- report symbols used by kernel modules
 .SH SYNOPSIS
@@ -8,6 +8,8 @@ ksc \- report symbols used by kernel modules
 
 .B ksc -s -p \fIKSC_RESULT\fR [OPTIONS]
 
+.B ksc -S -p \fIKSC_RESULT\fR [OPTIONS]
+
 .SH DESCRIPTION
 .B ksc
 produces and submits reports of symbols used by kernel object \fIFILE\fRs
@@ -15,7 +17,9 @@ produces and submits reports of symbols used by kernel object \fIFILE\fRs
 
 For more on report generation, see -k.
 
-For more on report submission, see -s.
+For more on report submission for stabilization, see -s.
+
+For more on report submission for notification, see -S.
 
 .SH ENVIRONMENT
 
@@ -34,7 +38,7 @@ You may freely mix different option styles.
 
 .TP
 \fB\-h\fR, \fB\-\-help\fR
-Show help message and exit.
+Show help message and exitfor notification, see -S..
 .TP
 \fB\-c\fR \fICONFIG\fR, \fB\-\-\fRconfig=\fICONFIG\fR
 Read config options from \fICONFIG\fR file. If not supplied, \fBksc\fR will use
@@ -81,7 +85,7 @@ RHEL \fIRELEASE\fR against which the bug is to be filed, e.g '6.5'.
 \fB\-p\fR \fIPREVIOUS\fR, \fB\-\-previous\fR=\fIPREVIOUS\fR
 Specified \fIPREVIOUS\fR file is marked for submission to Red Hat Bugzilla.
 .br
-To submit, you need to use -s.
+To submit, you need to use -s or -S.
 .TP
 \fB\-r\fR \fIRELEASE\fR, \fB\-\-release\fR=\fIRELEASE\fR
 RHEL \fIRELEASE\fR used for symbol comparison with stablelists, e.g. '6.5'.
@@ -93,7 +97,7 @@ path and Module.symvers of the currently running kernel is used.
 
 You are notified whenever symbol is not present in the Module.symvers file.
 .TP
-\fB\-s\fR, \fB\-\-submit\fR
+\fB\-s\fR, \fB\-\-submit\fR, \fB\-S\fR, \fB\-\-subscribe\fR
 Submit the report to the Red Hat Bugzilla (https://bugzilla.redhat.com).
 Credentials used in submission need to be set a config file (see FILES section
 below). If API key is not set, ksc will prompt for Bugzilla password.
@@ -103,6 +107,9 @@ This option needs to be supplemented with -k or -p.
 If used with -k, report gets generated, opened in an editor for you to make
 changes, saved in \fI~/ksc-result.txt\fR, and submitted. You may interrupt
 submission by pressing ^C.
+
+To submit for stabilization, please use -s. Using -s implies -S.
+To submit for notification only, please use -S.
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 Prints ksc version.
@@ -133,6 +140,10 @@ api_key=api_key
 
 These are default values. Whenever a field has such a value (except the
 server field), it will always be treated as though it were undefined/left blank.
+
+Note that a non-empty valid Partner field is required when using -s. If omitted
+in the config file, user will be prompted to insert it during execution time.
+Blank partner field is supported with -S.
 
 .SH EXAMPLES
 .TP
