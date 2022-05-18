@@ -284,7 +284,18 @@ def createbug(filename, arch, mock, path, releasename, module, subcomponent):
     else:
         bughash["Bugzilla_login"] = conf["user"]
         bughash["Bugzilla_password"] = conf["password"]
-    bughash["cf_partner"] = [conf["partner"], ]
+
+    if conf["partner"]:
+        bughash["cf_partner"] = [conf["partner"], ]
+    else:
+        if subcomponent == "kabi-stablelists":
+            print("You must provide a valid non-empty Partner field when using -s.")
+            sys.exit(1)
+        if query_user_bool("You have provided blank partner field. " \
+                "This will file your request publicly. Proceed? [y/N]: ") != 'y':
+            print("ksc-report.txt not uploaded. Terminating...")
+            sys.exit(1)
+
     bughash["keywords"] = ["Tracking"]
 
     try:
@@ -343,7 +354,10 @@ def trycreatebug(filename, mock, bughash, conf, bz):
         groups=bughash['groups'],
         keywords=bughash['keywords']
     )
-    ret['cf_partner'] = bughash['cf_partner']
+
+    if "cf_partner" in bughash and bughash['cf_partner']:
+        ret['cf_partner'] = bughash['cf_partner']
+
     bug = bz.createbug(ret)
 
     bugid = bug.id
