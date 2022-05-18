@@ -141,6 +141,10 @@ api_key=api_key
 These are default values. Whenever a field has such a value (except the
 server field), it will always be treated as though it were undefined/left blank.
 
+Note that a non-empty valid Partner field is required when using -s. If omitted
+in the config file, user will be prompted to insert it during execution time.
+Blank partner field is supported with -S.
+
 .SH EXAMPLES
 .TP
 ksc -k a.ko
