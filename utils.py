@@ -278,7 +278,7 @@ def createbug(filename, arch, mock, path, releasename, module, subcomponent,
             print("Error: Please specify a non-empty partner-group config " +\
                   "option in your ksc.conf config file or in the prompt above. " +\
                   "Bug was not filed!")
-            return
+            sys.exit(1)
 
         bughash["groups"] = groups
 
