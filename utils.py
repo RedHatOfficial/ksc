@@ -160,7 +160,7 @@ def run(command):
     return out.decode(locale.getpreferredencoding())
 
 
-def getconfig(path='/etc/ksc.conf', mock=False):
+def getconfig(path='/etc/ksc.conf', mock=False, require_partner=True):
     """
     Returns the bugzilla config
     """
@@ -192,10 +192,11 @@ def getconfig(path='/etc/ksc.conf', mock=False):
             print("Servername is not valid in configuration.")
             return False
         if not mock:  # pragma: no cover
-            if not result['partner'] or result['partner'] == 'partner-name':
-                result["partner"] = input("Partner name: ")
-            if not result['group'] or result['group'] == 'partner-group':
-                result['group'] = input("Partner group: ")
+            if require_partner:
+                if "partner" not in result or not result['partner'] or result['partner'] == 'partner-name':
+                    result["partner"] = input("Partner name: ")
+                if "group" not in result or not result['group'] or result['group'] == 'partner-group':
+                    result['group'] = input("Partner group: ")
             if "api_key" not in result or not result['api_key'] or result['api_key'] == 'api_key':
                 print('Current Bugzilla user: %s' % result['user'])
                 result['password'] = getpass.getpass('Please enter password: ')
@@ -220,9 +221,10 @@ def createbug_stable(filename, arch, mock=False, path='/etc/ksc.conf',
 def createbug_notif(filename, arch, mock=False, path='/etc/ksc.conf',
               releasename='9.0', module=None):
     return createbug(filename, arch, mock, path, releasename, module,
-            "kabi-notificationlists")
+            "kabi-notificationlists", False)
 
-def createbug(filename, arch, mock, path, releasename, module, subcomponent):
+def createbug(filename, arch, mock, path, releasename, module, subcomponent,
+        require_partner = True):
     """
     Opens a bug in the Bugzilla
     """
@@ -258,7 +260,7 @@ def createbug(filename, arch, mock, path, releasename, module, subcomponent):
         path = './data/ksc.conf'
 
     try:
-        conf = getconfig(path, mock=mock)
+        conf = getconfig(path, mock, require_partner)
     except Exception as err:
         print("Problem in parsing the configuration.")
         print(err)
@@ -271,13 +273,14 @@ def createbug(filename, arch, mock, path, releasename, module, subcomponent):
             groups.append(conf['group'])
 
     groups = list(filter(lambda x: len(x) > 0, groups))
-    if not groups:
-        print("Error: Please specify a non-empty partner-group config " +\
-              "option in your ksc.conf config file or in the prompt above. " +\
-              "Bug was not filed!")
-        return
+    if require_partner:
+        if not groups:
+            print("Error: Please specify a non-empty partner-group config " +\
+                  "option in your ksc.conf config file or in the prompt above. " +\
+                  "Bug was not filed!")
+            sys.exit(1)
 
-    bughash["groups"] = groups
+        bughash["groups"] = groups
 
     if 'api_key' in conf and conf['api_key'] != 'api_key':
         bughash["Bugzilla_api_key"] = conf["api_key"]
@@ -288,7 +291,7 @@ def createbug(filename, arch, mock, path, releasename, module, subcomponent):
     if conf["partner"]:
         bughash["cf_partner"] = [conf["partner"], ]
     else:
-        if subcomponent == "kabi-stablelists":
+        if require_partner:
             print("You must provide a valid non-empty Partner field when using -s.")
             sys.exit(1)
         if query_user_bool("You have provided blank partner field. " \
@@ -340,20 +343,35 @@ def trycreatebug(filename, mock, bughash, conf, bz):
 
     bugid = 0
 
-    ret = bz.build_createbug(
-        product=bughash['product'],
-        component=bughash['component'],
-        sub_component=bughash['sub_component'],
-        summary=bughash['summary'],
-        version=bughash['version'],
-        platform=bughash['platform'],
-        qa_contact=bughash['qa_contact'],
-        severity=bughash['severity'],
-        priority=bughash['priority'],
-        description=bughash['description'],
-        groups=bughash['groups'],
-        keywords=bughash['keywords']
-    )
+    if "groups" in bughash:
+        ret = bz.build_createbug(
+            product=bughash['product'],
+            component=bughash['component'],
+            sub_component=bughash['sub_component'],
+            summary=bughash['summary'],
+            version=bughash['version'],
+            platform=bughash['platform'],
+            qa_contact=bughash['qa_contact'],
+            severity=bughash['severity'],
+            priority=bughash['priority'],
+            description=bughash['description'],
+            groups=bughash['groups'],
+            keywords=bughash['keywords']
+        )
+    else:
+        ret = bz.build_createbug(
+            product=bughash['product'],
+            component=bughash['component'],
+            sub_component=bughash['sub_component'],
+            summary=bughash['summary'],
+            version=bughash['version'],
+            platform=bughash['platform'],
+            qa_contact=bughash['qa_contact'],
+            severity=bughash['severity'],
+            priority=bughash['priority'],
+            description=bughash['description'],
+            keywords=bughash['keywords']
+        )
 
     if "cf_partner" in bughash and bughash['cf_partner']:
         ret['cf_partner'] = bughash['cf_partner']
