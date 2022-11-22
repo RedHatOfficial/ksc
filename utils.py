@@ -21,7 +21,42 @@ import getpass
 import subprocess
 import locale
 
+from enum import Enum
+
 from bugzilla import Bugzilla, BugzillaError
+
+class SubmissionMethod(Enum):
+    NONE = 0
+    BUGZILLA = 1 << 0
+    MAILING_LIST = 1 << 1
+
+class ConfigNotFoundException(Exception):
+    def __init__(self, filepath):
+        message = f"{filepath}: Could not open config file."
+        super().__init__(message)
+
+class ConfigMissingMandatoryFieldException(Exception):
+    def __init__(self, filepath, field, opt=""):
+        opt = f" {opt}" if opt else opt
+        if type(field) is str:
+            message = f"{filepath}: Mandatory field `{field}' not found.{opt}"
+        elif type(field) is list:
+            message = f"{filepath}: At least one of the following fields " + \
+                "must be set :" + ", ".join(map(lambda x: f"`{x}'", field))
+        super().__init__(message)
+
+class ConfigMalformedFieldException(Exception):
+    def __init__(self, filepath, field, value, opt=""):
+        opt = f" {opt}" if opt else opt
+        message = f"{filepath}: Field `{field}' has an invalid value: " + \
+            "`{value}'.{opt}"
+        super().__init__(message)
+
+class ConfigDeprecatedValueException(Exception):
+    def __init__(self, filepath, field, value):
+        message = f"{filepath}: Field `{field}' is set to a deprecated " + \
+            "value: `{value}'. Please consult ksc manpage (man ksc)."
+        super().__init__(message)
 
 # stablelist directory
 WHPATH = '/lib/modules'
@@ -159,13 +194,16 @@ def run(command):
         raise IOError(errs[1].strip() if len(errs) > 1 else err)
     return out.decode(locale.getpreferredencoding())
 
+def is_valid_mail(email):
+    return re.fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', email)
 
-def getconfig(path='/etc/ksc.conf', mock=False, require_partner=True):
+def getconfig(path='/etc/ksc.conf', mock=False, require_partner=False, verbose=True):
     """
     Returns the bugzilla config
     """
     result = {}
     result['partner'] = ''
+    result['method'] = SubmissionMethod.NONE.value
 
     if not os.path.isfile(path):
         path = '/etc/ksc.conf'
@@ -173,44 +211,90 @@ def getconfig(path='/etc/ksc.conf', mock=False, require_partner=True):
         fptr = open(path)
         lines = fptr.readlines()
         fptr.close()
-        for line in lines:
-            if line.startswith("user="):
-                result["user"] = line[5:-1]
-            elif line.startswith("partner="):
-                result["partner"] = line[8:-1]
-            elif line.startswith("server="):
-                result["server"] = line[7:-1]
-            elif line.startswith("partnergroup="):
-                result["group"] = line[13:-1]
-            elif line.startswith("api_key="):
-                result["api_key"] = line[8:-1]
-        if 'user' not in result and 'api_key' not in result:
-            print("Either user name or api_key must be specified in configuration.")
-            return False
-        if ('server' not in result or
-                not result['server'].endswith('xmlrpc.cgi')):
-            print("Servername is not valid in configuration.")
-            return False
-        if not mock:  # pragma: no cover
-            if require_partner:
-                if "partner" not in result or not result['partner'] or result['partner'] == 'partner-name':
-                    result["partner"] = input("Partner name: ")
-                if "group" not in result or not result['group'] or result['group'] == 'partner-group':
-                    result['group'] = input("Partner group: ")
-            if "api_key" not in result or not result['api_key'] or result['api_key'] == 'api_key':
-                print('Current Bugzilla user: %s' % result['user'])
-                result['password'] = getpass.getpass('Please enter password: ')
-            else:
-                print('Using API Key for authentication')
-        else:
-            result['password'] = 'mockpassword'
-        if not result['user']:
-            print("Error: missing values in configuration file.")
-            print("Bug not submitted")
-            sys.exit(1)
     except Exception as err:
-        print("Error reading %s" % path)
-        sys.exit(1)
+        raise ConfigNotFoundException(path)
+
+    for line in lines:
+        if not line:
+            continue
+        if line.startswith("user="):
+            result["user"] = line[5:-1]
+        elif line.startswith("partner="):
+            result["partner"] = line[8:-1]
+        elif line.startswith("server="):
+            result["server"] = line[7:-1]
+        elif line.startswith("partnergroup="):
+            result["group"] = line[13:-1]
+        elif line.startswith("api_key="):
+            result["api_key"] = line[8:-1]
+        elif line.startswith("to="):
+            result["to"] = line[3:-1]
+
+    if 'user' not in result or not result['user']:
+        raise ConfigMissingMandatoryFieldException(path, "user")
+
+    if not is_valid_mail(result['user']):
+        raise ConfigMalformedFieldException(path, "user", result['user'],
+            "Please provide a valid e-mail address.")
+
+    if 'partner' not in result or not result['partner']:
+        raise ConfigMissingMandatoryFieldException(path, "partner")
+
+    if 'group' not in result or not result['group']:
+        raise ConfigMissingMandatoryFieldException(path, "group")
+
+    if result['partner'] == "none":
+        result['partner'] = ""
+
+    if result['group'] == "none":
+        result['group'] = ""
+
+    mandatory_set = False
+    if 'to' in result and result['to']:
+        if not is_valid_mail(result['to']):
+            raise ConfigMalformedFieldException(path, "to", result['to'],
+                "Please provide a valid e-mail address.")
+        result['method'] |= SubmissionMethod.MAILING_LIST.value
+        mandatory_set = True
+
+    if 'api_key' in result and result['api_key']:
+        if 'server' not in result or not result['server']:
+            raise ConfigMissingMandatoryFieldException(path, "user",
+                "Field `api_key' requires `server' field, which was not set.")
+        if not result['server'].endswith('xmlrpc.cgi'):
+            raise ConfigMalformedFieldException(path, "server", result['server'],
+                "Please provide a valid RPC URL, e.g., " +
+                "`https://bugzilla.redhat.com/xmlrpc.cgi'.")
+        result['method'] |= SubmissionMethod.BUGZILLA.value
+        mandatory_set = True
+
+    if not mandatory_set:
+        raise ConfigMissingMandatoryFieldException(path, ["to", "api_key"])
+
+    if verbose:
+        if result['method'] & SubmissionMethod.BUGZILLA.value:
+            print('Using bugzilla submission method, API Key for authentication')
+        if result['method'] & SubmissionMethod.MAILING_LIST.value:
+            print('Using mailing list submission method.')
+
+    # ksc deprecated default values, ensure that users do not try to file a bug
+    # using legacy configuration's default values
+    deprecatedValues = {
+        "user": "user@redhat.com",
+        "partner": "partner-name",
+        "group": "partner-group",
+        "api_key": "api_key"
+    }
+
+    for key in deprecatedValues:
+        if key not in result:
+            continue
+        if not result[key]:
+            continue
+        if result[key] != deprecatedValues[key]:
+            continue
+        raise ConfigDeprecatedValueException(path, key, result[key])
+
     return result
 
 def createbug_stable(filename, arch, mock=False, path='/etc/ksc.conf',
@@ -221,10 +305,10 @@ def createbug_stable(filename, arch, mock=False, path='/etc/ksc.conf',
 def createbug_notif(filename, arch, mock=False, path='/etc/ksc.conf',
               releasename='9.0', module=None):
     return createbug(filename, arch, mock, path, releasename, module,
-            "kabi-notificationlists", False)
+            "kabi-notificationlists")
 
 def createbug(filename, arch, mock, path, releasename, module, subcomponent,
-        require_partner = True):
+        require_partner = False):
     """
     Opens a bug in the Bugzilla
     """
@@ -268,19 +352,9 @@ def createbug(filename, arch, mock, path, releasename, module, subcomponent,
 
     if not conf:
         return
-    if 'group' in conf:
-        if conf['group'] != 'partner-group':
-            groups.append(conf['group'])
 
-    groups = list(filter(lambda x: len(x) > 0, groups))
-    if require_partner:
-        if not groups:
-            print("Error: Please specify a non-empty partner-group config " +\
-                  "option in your ksc.conf config file or in the prompt above. " +\
-                  "Bug was not filed!")
-            sys.exit(1)
-
-        bughash["groups"] = groups
+    if 'group' in conf and conf['group']:
+        bughash["groups"] = [groups]
 
     if 'api_key' in conf and conf['api_key'] != 'api_key':
         bughash["Bugzilla_api_key"] = conf["api_key"]
