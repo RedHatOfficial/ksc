@@ -15,11 +15,10 @@ import sys
 from optparse import OptionParser, SUPPRESS_HELP
 from utils import run, read_list
 from utils import read_total_list, get_release_name
-from utils import createbug_stable, createbug_notif
+from utils import submit_stable, submit_notif
 from utils import query_user, query_user_bool
 
-KSCVERSION = "ksc - Version 1.11"
-
+KSCVERSION = "ksc - Version 1.12"
 
 class Ksc(object):
 
@@ -68,10 +67,8 @@ class Ksc(object):
         self.arch = None
         self.vermagic = {}
         self.import_ns = {}
-        if mock:
-            self.releasename = '7.0'
-        else:
-            self.releasename = None
+        self.releasename = None
+        self.centos_stream = False
 
     def clean(self):
         self.all_symbols_used = {}
@@ -104,6 +101,8 @@ class Ksc(object):
         parser.add_option("-n", "--name", dest="releasename",
                           help="Red Hat release to file the bug against, "
                                "e.g '6.7'", metavar="RELEASENAME")
+        parser.add_option("-C", "--centos-stream", dest="centos",
+                          action="store_true", help="Target Centos Stream X")
         parser.add_option("-p", "--previous", dest="previous",
                           help="path to previous resultset to submit as bug")
         parser.add_option("-r", "--release", dest="release",
@@ -143,13 +142,16 @@ class Ksc(object):
             path = os.path.expanduser("~/ksc.conf")
 
         if options.releasename:
-            self.releasename = options.releasename
-            if not self.valid_release_version(self.releasename):
+            if not self.valid_release_version(options.releasename):
                 sys.exit(1)
+            self.releasename = options.releasename
 
         if options.release:
             if not self.valid_release_version(options.release):
                 sys.exit(1)
+
+        if options.centos:
+            self.centos_stream = options.centos
 
         if options.releasename and options.release and \
                 options.release != options.releasename:
@@ -259,6 +261,8 @@ class Ksc(object):
                                 os.path.basename(filename_section)
 
     def valid_release_version(self, release):
+        if release == "c9s" or release == "CentOS Stream":
+            return True
         rels = release.split(".")
         if len(rels) != 2:
             print("Invalid release: %s" % release)
@@ -358,12 +362,12 @@ class Ksc(object):
             sys.exit(1)
 
         if submit:
-            return createbug_stable(filename, self.arch, mock=self.mock,
-                    path=path, releasename=self.releasename,
+            return submit_stable(filename, self.arch, mock=self.mock,
+                    path=path, releasename=(self.releasename, self.centos_stream),
                     module=module_name)
 
-        createbug_notif(filename, self.arch, mock=self.mock, path=path,
-                releasename=self.releasename, module=module_name)
+        submit_notif(filename, self.arch, mock=self.mock, path=path,
+                releasename=(self.releasename, self.centos_stream), module=module_name)
 
 
     def get_justification(self, filename):

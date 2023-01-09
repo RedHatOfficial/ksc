@@ -1,4 +1,4 @@
-.TH ksc "1" "May 2022" "ksc - Version 1.11" "User Commands"
+.TH ksc "1" "Jan 2023" "ksc - Version 1.12" "User Commands"
 .SH NAME
 ksc \- report symbols used by kernel modules
 .SH SYNOPSIS
@@ -82,6 +82,9 @@ other modules (which are part of the report) depend on symbols exported by
 \fB\-n\fR \fIRELEASE\fR, \fB\-\-name\fR=\fIRELEASE\fR
 RHEL \fIRELEASE\fR against which the bug is to be filed, e.g '6.5'.
 .TP
+\fB\-C\fR, \fB\-\-centos-stream\fR
+Target Centos Stream rather than a specific minor release.
+.TP
 \fB\-p\fR \fIPREVIOUS\fR, \fB\-\-previous\fR=\fIPREVIOUS\fR
 Specified \fIPREVIOUS\fR file is marked for submission to Red Hat Bugzilla.
 .br
@@ -126,24 +129,41 @@ Local (global) ksc config file. Global config file is used only when local
 config file does not exist. Syntax is as follows:
 .IP
 .br
+[global]
+.br
+user=user@example.com
+.br
+partner=none
+.br
+partnergroup=none
+.br
 [bugzilla]
-.br
-user=user@redhat.com
-.br
-partner=partner\-name
-.br
-partnergroup=partner\-group
 .br
 server=https://bugzilla.redhat.com/xmlrpc.cgi
 .br
-api_key=api_key
+api_key=API_KEY
+.br
+[mailing_list]
+.br
+to=kabi-requests@redhat.com
 
-These are default values. Whenever a field has such a value (except the
-server field), it will always be treated as though it were undefined/left blank.
+Please replace the values above by your credentials.
 
-Note that a non-empty valid Partner field is required when using -s. If omitted
-in the config file, user will be prompted to insert it during execution time.
-Blank partner field is supported with -S.
+Mandatory fields for any submission method: user, partner, partnergroup.
+.br
+Mandatory fields for Bugzilla submission method: server, api_key.
+.br
+Mandatory fields for mailing list submission method: to.
+
+Note that server must be a valid XML RPC Bugzilla link, user and to fields
+must be valid e-mail addresses.
+
+At least one submission method must be configured to be able to submit
+ksc reports.
+
+In case you don't have or don't wish to file the bug under a specific
+partner/partnergroup, please set these fields to \fInone\fR (see example
+above).
 
 .SH EXAMPLES
 .TP
