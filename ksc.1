@@ -139,11 +139,17 @@ partnergroup=none
 .br
 [bugzilla]
 .br
+enable=1
+.br
 server=https://bugzilla.redhat.com/xmlrpc.cgi
 .br
 api_key=API_KEY
 .br
 [mailing_list]
+.br
+enable=1
+.br
+smtp=smtp.example.com
 .br
 to=kabi-requests@redhat.com
 
@@ -153,7 +159,10 @@ Mandatory fields for any submission method: user, partner, partnergroup.
 .br
 Mandatory fields for Bugzilla submission method: server, api_key.
 .br
-Mandatory fields for mailing list submission method: to.
+Mandatory fields for mailing list submission method: to, smtp.
+
+By default, Bugzilla (mailing list) submission method is auto-enabled
+(auto-disabled) and must be opted out (in).
 
 Note that server must be a valid XML RPC Bugzilla link, user and to fields
 must be valid e-mail addresses.
