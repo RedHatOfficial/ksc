@@ -220,6 +220,7 @@ def getconfig(path='/etc/ksc.conf', mock=False, require_partner=False, verbose=T
 
     # To be deprecated in the future:
     result['bugzilla_enable'] = True
+    result['mailing_list_enable'] = False
 
     cat = None
     for line in lines:
@@ -305,10 +306,10 @@ def getconfig(path='/etc/ksc.conf', mock=False, require_partner=False, verbose=T
         raise ConfigDeprecatedValueException(path, key, result[key])
 
     if not (result['method'] & SubmissionMethod.BUGZILLA.value):
-        conf["bugzilla_enable"] = False
+        result["bugzilla_enable"] = False
 
     if not (result['method'] & SubmissionMethod.MAILING_LIST.value):
-        conf["mailing_list_enable"] = False
+        result["mailing_list_enable"] = False
 
     return result
 
@@ -364,6 +365,11 @@ def sendmail(filename, arch, mock, conf, releasename, module, subcomponent,
     """
     Email ksc report.
     """
+
+    for field in [ "smtp", "user", "to" ]:
+        if field not in conf:
+            print(f"Could not send an email, '{field}' config field is missing.")
+            return
 
     major, centos = get_major_release(releasename)
     if not major:
